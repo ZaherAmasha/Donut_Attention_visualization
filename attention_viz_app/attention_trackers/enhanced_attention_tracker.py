@@ -37,7 +37,7 @@ class EnhancedAttentionVisualizer:
             "image": None,
             "outputs": None,
             "attention_weights": None,
-            "tokens": None,
+            "tokens": [],
             "generated_text": None,
             "feature_size": None,
             "swin_attentions": None,

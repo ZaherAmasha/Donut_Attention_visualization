@@ -62,7 +62,6 @@ class VL_Model(ABC):
         return img
 
 
-# import torch
 from transformers import MBartForCausalLM
 from transformers import DonutProcessor, VisionEncoderDecoderModel
 import dagshub

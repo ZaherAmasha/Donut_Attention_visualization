@@ -91,22 +91,22 @@ class EnhancedAttentionVisualizer:
 
             return self.cached_results
 
-    def visualize_swin_attention(self) -> Tuple[plt.Figure, str]:
-        """Visualize attention patterns within Swin Transformer blocks"""
-        if not self.cached_results["swin_attentions"]:
-            raise ValueError(
-                "No Swin attention weights available. Run generate_and_cache first."
-            )
+    # def visualize_swin_attention(self) -> Tuple[plt.Figure, str]:
+    #     """Visualize attention patterns within Swin Transformer blocks"""
+    #     if not self.cached_results["swin_attentions"]:
+    #         raise ValueError(
+    #             "No Swin attention weights available. Run generate_and_cache first."
+    #         )
 
-        # Get original image size
-        image_height, image_width = self.cached_results["image"].shape[:2]
+    #     # Get original image size
+    #     image_height, image_width = self.cached_results["image"].shape[:2]
 
-        # Generate visualization using the new method
-        fig, save_path = self.swin_tracker.visualize_attention_maps(
-            image_size=(image_height, image_width), output_dir=self.output_dir
-        )
+    #     # Generate visualization using the new method
+    #     fig, save_path = self.swin_tracker.visualize_attention_maps(
+    #         image_size=(image_height, image_width), output_dir=self.output_dir
+    #     )
 
-        return fig, save_path
+    #     return fig, save_path
 
     def aggregate_attention_heads(
         self, attention_weights: torch.Tensor, method: str = "mean"

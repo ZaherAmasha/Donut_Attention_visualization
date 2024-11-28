@@ -11,6 +11,29 @@ from attention_viz_app.zoom_pan_image_functionality import (
 )
 
 
+# to show which swin stage block we are at
+def signify_which_swin_stage_is_selected(layer_idx):
+    html_output = """
+    <strong>Current Swin Block:</strong>
+    <div style="display: flex; gap: 10px; font-size: 1.5em;">
+        <div style="width: 200px; height: 40px;
+                    background-color: {color1}; text-align: center; line-height: 40px;">Swin Stage 1</div>
+        <div style="width: 200px; height: 40px;
+                    background-color: {color2}; text-align: center; line-height: 40px;">Swin Stage 2</div>
+        <div style="width: 200px; height: 40px;
+                    background-color: {color3}; text-align: center; line-height: 40px;">Swin Stage 3</div>
+        <div style="width: 200px; height: 40px;
+                    background-color: {color4}; text-align: center; line-height: 40px;">Swin Stage 4</div>
+    </div>
+    """.format(
+        color1="green" if layer_idx >= 1 and layer_idx <= 2 else "gray",
+        color2="green" if layer_idx > 2 and layer_idx <= 4 else "gray",
+        color3="green" if layer_idx > 4 and layer_idx <= 18 else "gray",
+        color4="green" if layer_idx > 18 and layer_idx <= 20 else "gray",
+    )
+    return html_output
+
+
 def create_gradio_interface(model, processor):
     visualizer = EnhancedAttentionVisualizer(model, processor)
 
@@ -104,6 +127,8 @@ def create_gradio_interface(model, processor):
         # Create figure for single layer/head combination
         fig = plt.figure(figsize=(8, 6))
         print(f"layer index: {layer_idx}")
+        if layer_idx == "":
+            layer_idx = 1
         layer_idx = int(layer_idx)
         attention_weights = visualizer.swin_tracker.swin_attentions[layer_idx]
 
@@ -145,10 +170,10 @@ def create_gradio_interface(model, processor):
 
                 # Common controls
                 layer_slider = gr.Slider(
-                    minimum=0, maximum=3, step=1, value=0, label="Layer Index"
+                    minimum=1, maximum=4, step=1, value=0, label="Layer Index"
                 )
                 head_slider = gr.Slider(
-                    minimum=0, maximum=16, step=1, value=0, label="Head Index"
+                    minimum=1, maximum=16, step=1, value=0, label="Head Index"
                 )
                 length_slider = gr.Slider(
                     minimum=10,
@@ -158,6 +183,9 @@ def create_gradio_interface(model, processor):
                     label="Max Sequence Length",
                 )
                 process_btn = gr.Button("Process Image")
+                current_swin_block_display = gr.HTML(
+                    label="Current Swin Block"
+                )  # label is not showing for some reason
                 generated_text = gr.Textbox(label="Generated Text")
                 number_of_generated_tokens = gr.Textbox(
                     label="Number of Generated Tokens"
@@ -166,10 +194,10 @@ def create_gradio_interface(model, processor):
                 # Cross-attention specific controls
                 with gr.Group() as cross_attention_controls:
                     token_slider = gr.Slider(
-                        minimum=0,
+                        minimum=1,
                         maximum=100,  # Will be updated after processing
                         step=1,
-                        value=0,
+                        value=1,
                         label="Token Index",
                     )
                     with gr.Row():
@@ -225,9 +253,11 @@ def create_gradio_interface(model, processor):
             else:
                 return (
                     *visualize_swin_attention(layer_idx, head_idx),
-                    "",
-                    gr.Slider(maximum=20),
-                    gr.Slider(maximum=32),
+                    gr.Slider(
+                        minimum=1, maximum=20
+                    ),  # layers for the swin transformer here are [2,2,14,2] with a total of 20
+                    gr.Slider(minimum=1, maximum=32),  # head count is [4, 8, 16, 32]
+                    signify_which_swin_stage_is_selected(layer_idx),
                 )
 
         def change_attention_type_visualization(
@@ -243,10 +273,13 @@ def create_gradio_interface(model, processor):
                 print(
                     f"This is the layer index from the change attention type function: {layer_idx}"
                 )
+                current_swin_block_display.value = signify_which_swin_stage_is_selected(
+                    1
+                )
                 return (
                     *visualize_swin_attention(layer_idx, head_idx),
-                    gr.Slider(maximum=20),
-                    gr.Slider(maximum=32),
+                    gr.Slider(minimum=1, maximum=20),
+                    gr.Slider(minimum=1, maximum=32),
                 )
 
         # Connect all visualization controls
@@ -254,21 +287,50 @@ def create_gradio_interface(model, processor):
             fn=change_attention_type_visualization,
             inputs=[attention_type, token_slider, layer_slider, head_slider],
             outputs=[attention_plot, highlighted_text, layer_slider, head_slider],
+        ).then(
+            fn=lambda attention_type_input: (
+                signify_which_swin_stage_is_selected(
+                    1
+                )  # setting the selection to be on the first stage as this would be the same as the default selection of the layer slider
+                if attention_type_input == "Swin Attention"
+                else None
+            ),
+            inputs=[attention_type],
+            outputs=[current_swin_block_display],
         )
+
         token_slider.change(
             fn=update_visualization,
             inputs=[attention_type, token_slider, layer_slider, head_slider],
-            outputs=[attention_plot, highlighted_text, layer_slider, head_slider],
+            outputs=[
+                attention_plot,
+                highlighted_text,
+                layer_slider,
+                head_slider,
+                current_swin_block_display,
+            ],
         )
         layer_slider.change(
             fn=update_visualization,
             inputs=[attention_type, token_slider, layer_slider, head_slider],
-            outputs=[attention_plot, highlighted_text, layer_slider, head_slider],
+            outputs=[
+                attention_plot,
+                highlighted_text,
+                layer_slider,
+                head_slider,
+                current_swin_block_display,
+            ],
         )
         head_slider.change(
             fn=update_visualization,
             inputs=[attention_type, token_slider, layer_slider, head_slider],
-            outputs=[attention_plot, highlighted_text, layer_slider, head_slider],
+            outputs=[
+                attention_plot,
+                highlighted_text,
+                layer_slider,
+                head_slider,
+                current_swin_block_display,
+            ],
         )
         previous_token_button.click(
             fn=lambda x: gr.Slider(value=x - 1),

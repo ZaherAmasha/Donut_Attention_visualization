@@ -16,32 +16,32 @@ class SwinAttentionTracker:
 
     def _register_hooks(self):
         def hook_fn(module, input, output):
-            if hasattr(module, "attn") and hasattr(module.attn, "softmax_output"):
-                # Some implementations store the attention weights directly
-                attention_weights = module.attn.softmax_output.detach().cpu()
-                self.swin_attentions.append(attention_weights)
-                print("entered the attn block")
-            elif hasattr(module, "attentions"):
-                # Alternative implementation where weights are stored in 'attentions'
-                attention_weights = module.attentions[-1].detach().cpu()
-                print("entered the attentions block")
-                self.swin_attentions.append(attention_weights)
-            elif hasattr(module, "attn") and hasattr(module.attn, "_attention_weights"):
-                # Another common implementation pattern
-                attention_weights = module.attn._attention_weights.detach().cpu()
-                self.swin_attentions.append(attention_weights)
-                print("entered the attn and _attention_weights block")
-            else:
-                if output[0] is not None:
-                    # it should be output[1] to extract the attentions, but we have to set output_attentions=True in the model() method
-                    self.swin_attentions.append(output[1].detach().cpu())
-                    print(
-                        f"Swin attention extracted size: {output[1].detach().cpu().shape}"
-                    )
-                    # print(f'Swin attention extracted: {output[0].detach().cpu()}')
+            # if hasattr(module, "attn") and hasattr(module.attn, "softmax_output"):
+            #     # Some implementations store the attention weights directly
+            #     attention_weights = module.attn.softmax_output.detach().cpu()
+            #     self.swin_attentions.append(attention_weights)
+            #     print("entered the attn block")
+            # elif hasattr(module, "attentions"):
+            #     # Alternative implementation where weights are stored in 'attentions'
+            #     attention_weights = module.attentions[-1].detach().cpu()
+            #     print("entered the attentions block")
+            #     self.swin_attentions.append(attention_weights)
+            # elif hasattr(module, "attn") and hasattr(module.attn, "_attention_weights"):
+            #     # Another common implementation pattern
+            #     attention_weights = module.attn._attention_weights.detach().cpu()
+            #     self.swin_attentions.append(attention_weights)
+            #     print("entered the attn and _attention_weights block")
+            # else:
+            if output[0] is not None:
+                # it should be output[1] to extract the attentions, but we have to set output_attentions=True in the model() method
+                self.swin_attentions.append(output[1].detach().cpu())
                 print(
-                    "didn't enter the attentions attributes blocks so it should've entered the donutswinlayer"
+                    f"Swin attention extracted size: {output[1].detach().cpu().shape}"
                 )
+                # print(f'Swin attention extracted: {output[0].detach().cpu()}')
+            print(
+                "didn't enter the attentions attributes blocks so it should've entered the donutswinlayer"
+            )
             return output
 
         # Register hooks for all window attention modules in the Swin Transformer
@@ -218,9 +218,9 @@ class SwinAttentionTracker:
             col = (window_idx % windows_per_row) * window_size
 
             # Get window attention (average across sequence length)
-            print(
-                f"This is the window attention before the mean: {attention_weights[window_idx]}"
-            )
+            # print(
+            #     f"This is the window attention before the mean: {attention_weights[window_idx]}"
+            # )
             print(
                 f"This is the size of the window attention before the mean: {attention_weights[window_idx].shape}"
             )
@@ -228,7 +228,7 @@ class SwinAttentionTracker:
             print(
                 f"This is the size of the window attention after the mean: {window_attention.shape}"
             )
-            print(f"This is the window attention after the mean: {window_attention}")
+            # print(f"This is the window attention after the mean: {window_attention}")
             window_attention = window_attention.view(window_size, window_size)
 
             # Place window in full attention map

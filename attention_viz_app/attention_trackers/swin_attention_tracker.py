@@ -221,13 +221,13 @@ class SwinAttentionTracker:
             # print(
             #     f"This is the window attention before the mean: {attention_weights[window_idx]}"
             # )
-            print(
-                f"This is the size of the window attention before the mean: {attention_weights[window_idx].shape}"
-            )
+            # print(
+            #     f"This is the size of the window attention before the mean: {attention_weights[window_idx].shape}"
+            # )
             window_attention = attention_weights[window_idx]  # .mean(-1)
-            print(
-                f"This is the size of the window attention after the mean: {window_attention.shape}"
-            )
+            # print(
+            #     f"This is the size of the window attention after the mean: {window_attention.shape}"
+            # )
             # print(f"This is the window attention after the mean: {window_attention}")
             window_attention = window_attention.view(window_size, window_size)
 

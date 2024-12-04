@@ -9,31 +9,12 @@ from attention_viz_app.zoom_pan_image_functionality import (
     attention_visualizer,
     zoom_pan_image,
 )
+from utils.gradio_utils import (
+    adjust_head_slider_according_to_the_current_layer,
+    signify_which_swin_stage_is_selected,
+)
 
 # We have 4 decoder layers
-
-
-# to show which swin stage block we are at
-def signify_which_swin_stage_is_selected(layer_idx):
-    html_output = """
-    <strong>Current Swin Block:</strong>
-    <div style="display: flex; gap: 10px; font-size: 1.5em;">
-        <div style="width: 200px; height: 40px;
-                    background-color: {color1}; text-align: center; line-height: 40px;">Swin Stage 1</div>
-        <div style="width: 200px; height: 40px;
-                    background-color: {color2}; text-align: center; line-height: 40px;">Swin Stage 2</div>
-        <div style="width: 200px; height: 40px;
-                    background-color: {color3}; text-align: center; line-height: 40px;">Swin Stage 3</div>
-        <div style="width: 200px; height: 40px;
-                    background-color: {color4}; text-align: center; line-height: 40px;">Swin Stage 4</div>
-    </div>
-    """.format(
-        color1="green" if layer_idx >= 1 and layer_idx <= 2 else "gray",
-        color2="green" if layer_idx > 2 and layer_idx <= 4 else "gray",
-        color3="green" if layer_idx > 4 and layer_idx <= 18 else "gray",
-        color4="green" if layer_idx > 18 and layer_idx <= 20 else "gray",
-    )
-    return html_output
 
 
 def create_gradio_interface(model, processor):
@@ -248,8 +229,16 @@ def create_gradio_interface(model, processor):
         )
 
         # Update visualization based on controls
-        def update_visualization(attention_choice, token_idx, layer_idx, head_idx):
+        def update_visualization_on_attention_type_change(
+            attention_choice, token_idx, layer_idx, head_idx
+        ):
             if attention_choice == "Cross Attention":
+
+                # clipping the index values from swin attentions tab's sliders so not to encounter an index error
+                if layer_idx > 4:
+                    layer_idx = 4
+                if head_idx > 16:
+                    head_idx = 16
 
                 # To be able to move freely error-free through the UI before uploading an input image
                 if visualizer.cached_results["image"] is None:
@@ -278,8 +267,10 @@ def create_gradio_interface(model, processor):
                         None,
                         "",
                         gr.Slider(minimum=1, maximum=20),
-                        gr.Slider(minimum=1, maximum=32),
-                        signify_which_swin_stage_is_selected(1),
+                        gr.Slider(minimum=1, maximum=4),
+                        # None,
+                        # None,
+                        signify_which_swin_stage_is_selected(layer_idx),
                     )
                 return (
                     *visualize_swin_attention(
@@ -288,12 +279,108 @@ def create_gradio_interface(model, processor):
                     gr.Slider(
                         minimum=1, maximum=20
                     ),  # layers for the swin transformer here are [2,2,14,2] with a total of 20
-                    gr.Slider(minimum=1, maximum=32),  # head count is [4, 8, 16, 32]
+                    gr.Slider(minimum=1, maximum=4),  # head count is [4, 8, 16, 32]
+                    signify_which_swin_stage_is_selected(layer_idx),
+                )
+
+        # Update visualization based on controls
+        def update_visualization_on_control_sliders_change(
+            attention_choice, token_idx, layer_idx, head_idx
+        ):
+            if attention_choice == "Cross Attention":
+
+                # To be able to move freely error-free through the UI before uploading an input image
+                if visualizer.cached_results["image"] is None:
+                    return (
+                        None,
+                        "",
+                        # gr.Slider(minimum=1, maximum=4),
+                        # gr.Slider(minimum=1, maximum=16),
+                        "",
+                    )
+
+                fig, html = visualize_cross_attention(
+                    token_idx, layer_idx - 1, head_idx - 1
+                )  # the -1 is because the numpy arrays of the attention matrices are 0 indexed
+                return (
+                    fig,
+                    html,
+                    # gr.Slider(minimum=1, maximum=4),
+                    # gr.Slider(minimum=1, maximum=16),
+                    "",
+                )
+            else:
+                # To be able to move freely error-free through the UI before uploading an input image
+                if visualizer.cached_results["image"] is None:
+                    return (
+                        None,
+                        "",
+                        # gr.Slider(minimum=1, maximum=20),
+                        # gr.Slider(minimum=1, maximum=4),
+                        # None,
+                        # None,
+                        signify_which_swin_stage_is_selected(layer_idx),
+                    )
+                return (
+                    *visualize_swin_attention(
+                        layer_idx - 1, head_idx - 1
+                    ),  # the -1 is because the numpy arrays of the attention matrices are 0 indexed
+                    # gr.Slider(
+                    #     minimum=1, maximum=20
+                    # ),  # layers for the swin transformer here are [2,2,14,2] with a total of 20
+                    # gr.Slider(minimum=1, maximum=4),  # head count is [4, 8, 16, 32]
+                    signify_which_swin_stage_is_selected(layer_idx),
+                )
+
+        # Update visualization based on controls
+        def update_visualization_on_layer_and_head_sliders_change(
+            attention_choice, token_idx, layer_idx, head_idx
+        ):
+            if attention_choice == "Cross Attention":
+
+                # To be able to move freely error-free through the UI before uploading an input image
+                if visualizer.cached_results["image"] is None:
+                    return (
+                        None,
+                        "",
+                        # gr.Slider(minimum=1, maximum=4),
+                        # gr.Slider(minimum=1, maximum=16),
+                        "",
+                    )
+
+                fig, html = visualize_cross_attention(
+                    token_idx, layer_idx - 1, head_idx - 1
+                )  # the -1 is because the numpy arrays of the attention matrices are 0 indexed
+                return (
+                    fig,
+                    html,
+                    # gr.Slider(minimum=1, maximum=4),
+                    # gr.Slider(minimum=1, maximum=16),
+                    "",
+                )
+            else:
+                # To be able to move freely error-free through the UI before uploading an input image
+                if visualizer.cached_results["image"] is None:
+                    return (
+                        None,
+                        "",
+                        # gr.Slider(minimum=1, maximum=20),
+                        # gr.Slider(minimum=1, maximum=4),
+                        signify_which_swin_stage_is_selected(layer_idx),
+                    )
+                return (
+                    *visualize_swin_attention(
+                        layer_idx - 1, head_idx - 1
+                    ),  # the -1 is because the numpy arrays of the attention matrices are 0 indexed
+                    # gr.Slider(
+                    #     minimum=1, maximum=20
+                    # ),  # layers for the swin transformer here are [2,2,14,2] with a total of 20
+                    # gr.Slider(minimum=1, maximum=4),  # head count is [4, 8, 16, 32]
                     signify_which_swin_stage_is_selected(layer_idx),
                 )
 
         attention_type.change(
-            fn=update_visualization,
+            fn=update_visualization_on_attention_type_change,
             inputs=[attention_type, token_slider, layer_slider, head_slider],
             outputs=[
                 attention_plot,
@@ -309,24 +396,24 @@ def create_gradio_interface(model, processor):
         )
 
         token_slider.change(
-            fn=update_visualization,
+            fn=update_visualization_on_control_sliders_change,
             inputs=[attention_type, token_slider, layer_slider, head_slider],
             outputs=[
                 attention_plot,
                 highlighted_text,
-                layer_slider,
-                head_slider,
+                # layer_slider,
+                # head_slider,
                 current_swin_block_display,
             ],
         )
         layer_slider.change(
-            fn=update_visualization,
+            fn=update_visualization_on_layer_and_head_sliders_change,
             inputs=[attention_type, token_slider, layer_slider, head_slider],
             outputs=[
                 attention_plot,
                 highlighted_text,
-                layer_slider,
-                head_slider,
+                # layer_slider,
+                # head_slider,
                 current_swin_block_display,
             ],
         ).then(
@@ -339,16 +426,20 @@ def create_gradio_interface(model, processor):
             ),
             inputs=[attention_type, layer_slider],
             outputs=[current_swin_block_display],
+        ).then(  # to adjust the max of the head slider to match the specific layer that is selected by the layer slider
+            fn=adjust_head_slider_according_to_the_current_layer,
+            inputs=[layer_slider, head_slider, attention_type],
+            outputs=[head_slider],
         )
 
         head_slider.change(
-            fn=update_visualization,
+            fn=update_visualization_on_layer_and_head_sliders_change,
             inputs=[attention_type, token_slider, layer_slider, head_slider],
             outputs=[
                 attention_plot,
                 highlighted_text,
-                layer_slider,
-                head_slider,
+                # layer_slider,
+                # head_slider,
                 current_swin_block_display,
             ],
         )
@@ -389,3 +480,6 @@ def create_gradio_interface(model, processor):
             ],
         )
     return demo
+
+
+# TODO: Continue improving the UX and fix the issue with the zooming of the image. Refer to main.py for more info.

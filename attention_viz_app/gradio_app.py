@@ -4,20 +4,23 @@ import math
 import html
 import re
 
-from attention_trackers.enhanced_attention_tracker import EnhancedAttentionVisualizer
-from attention_viz_app.zoom_pan_image_functionality import (
-    attention_visualizer,
+from utils.zoom_pan_image_functionality import (
+    zoom_pan_image_tracker,
     zoom_pan_image,
 )
+from attention_trackers.enhanced_attention_tracker import EnhancedAttentionVisualizer
+
 from utils.gradio_utils import (
     adjust_head_slider_according_to_the_current_layer,
     signify_which_swin_stage_is_selected,
 )
+from utils.visualization_utils import visualize_cross_attention
 
 # We have 4 decoder layers
 
 
 def create_gradio_interface(model, processor):
+
     visualizer = EnhancedAttentionVisualizer(model, processor)
 
     def initial_process(image, max_length):
@@ -27,78 +30,6 @@ def create_gradio_interface(model, processor):
         return cached_results["generated_text"], gr.Slider(
             maximum=len(cached_results["tokens"]) - 1
         )  # -1 to exclude BOS token
-
-    def create_highlighted_text(token_idx):
-        """Create HTML with highlighted token"""
-        if (
-            visualizer.cached_results is None
-            or "tokens" not in visualizer.cached_results
-        ):
-            return ""
-
-        tokens = visualizer.cached_results["tokens"][1:]  # Skip BOS token
-        words = []
-        # print(f'These are the tokens to be highlighted: {len(tokens)}')
-        for i, token in enumerate(tokens):
-            # Clean up token
-            # Remove underscore prefix only if followed by a number
-            if re.match(r"^▁\d", token):
-                token = token[1:]
-
-            cleaned_token = html.escape(token)
-            # Highlight the selected token
-            if i == token_idx:
-                word = f'<span style="background-color: #ffd700; padding: 0.2em 0.4em; border-radius: 0.2em; font-weight: bold;">{cleaned_token}</span>'
-            else:
-                word = cleaned_token
-            words.append(word)
-
-        return "".join(words)
-
-    def visualize_cross_attention(token_idx, layer_idx, head_idx):
-        """Generate cross-attention visualization for specific token, layer and head"""
-        if visualizer.cached_results["image"] is None:
-            return None
-
-        token_attention = visualizer._process_attention_weights(
-            visualizer.cached_results["attention_weights"], layer_idx, head_idx
-        )
-
-        # Get attention for specific token
-        token_attention = token_attention[token_idx]
-
-        # Create visualization for single token
-        fig = plt.figure(figsize=(8, 6))
-
-        # Get image and feature dimensions
-        image = visualizer.cached_results["image"]
-        image_height, image_width = image.shape[:2]
-        feature_size = visualizer.cached_results["feature_size"]
-
-        # Reshape and upsample attention
-        token_attention = token_attention.reshape(feature_size, feature_size)
-        upsampled_attention = visualizer._upsample_attention_map(
-            token_attention, (image_height, image_width)
-        )
-
-        # Plot
-        plt.imshow(image)
-        attention_mask = plt.imshow(upsampled_attention, cmap="magma", alpha=0.5)
-        plt.colorbar(attention_mask)
-
-        token = visualizer.cached_results["tokens"][
-            token_idx + 1
-        ]  # +1 because we skipped BOS
-        plt.title(f'Attention for token: "{token}"')
-        plt.axis("off")
-
-        # Storing the image of the figure for the zoom and pan functionality later on
-        attention_visualizer.store_original_plot(fig)
-
-        # Create highlighted text
-        highlighted_text = create_highlighted_text(token_idx)
-
-        return fig, highlighted_text
 
     def visualize_swin_attention(layer_idx, head_idx):
         """Generate Swin attention visualization for specific layer and head"""
@@ -114,6 +45,11 @@ def create_gradio_interface(model, processor):
             layer_idx = 1
         layer_idx = int(layer_idx)
         attention_weights = visualizer.swin_tracker.swin_attentions[layer_idx]
+        # TODO: continue debugging from here, see how the attentions are extracted for the different layers and heads
+        # and check if the layer and head indices are off by 1 or not, because I say earlier that sometimes they are set to -1 for some reason
+        # print(
+        #     f"This is the original swin attention weights matrix for layer {layer_idx} and head {head_idx}: {visualizer.swin_tracker.swin_attentions.shape}"
+        # )
 
         # Extract specific head's attention
         head_attention = attention_weights[0, head_idx].numpy()
@@ -122,11 +58,19 @@ def create_gradio_interface(model, processor):
         window_size = int(math.sqrt(head_attention.shape[-1]))
         windows_per_row = int(math.sqrt(attention_weights.shape[0]))
 
+        print(
+            f"This is the swin attention weights matrix for layer {layer_idx} and head {head_idx}: {attention_weights[0, head_idx].shape}"
+        )
+
         full_attention = visualizer.swin_tracker._reconstruct_attention_map(
             attention_weights[0, head_idx],
             window_size,
             windows_per_row,
             (image_height, image_width),
+        )
+
+        print(
+            f"This is the full swin attention matrix for layer {layer_idx} and head {head_idx}: {full_attention.shape}"
         )
 
         plt.imshow(full_attention, cmap="viridis")
@@ -251,7 +195,11 @@ def create_gradio_interface(model, processor):
                     )
 
                 fig, html = visualize_cross_attention(
-                    token_idx, layer_idx - 1, head_idx - 1
+                    visualizer,
+                    zoom_pan_image_tracker,
+                    token_idx,
+                    layer_idx - 1,
+                    head_idx - 1,
                 )  # the -1 is because the numpy arrays of the attention matrices are 0 indexed
                 return (
                     fig,
@@ -300,7 +248,11 @@ def create_gradio_interface(model, processor):
                     )
 
                 fig, html = visualize_cross_attention(
-                    token_idx, layer_idx - 1, head_idx - 1
+                    visualizer,
+                    zoom_pan_image_tracker,
+                    token_idx,
+                    layer_idx - 1,
+                    head_idx - 1,
                 )  # the -1 is because the numpy arrays of the attention matrices are 0 indexed
                 return (
                     fig,
@@ -349,7 +301,11 @@ def create_gradio_interface(model, processor):
                     )
 
                 fig, html = visualize_cross_attention(
-                    token_idx, layer_idx - 1, head_idx - 1
+                    visualizer,
+                    zoom_pan_image_tracker,
+                    token_idx,
+                    layer_idx - 1,
+                    head_idx - 1,
                 )  # the -1 is because the numpy arrays of the attention matrices are 0 indexed
                 return (
                     fig,

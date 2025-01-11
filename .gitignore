@@ -1,6 +1,7 @@
 notebooks/
 loaded_model/
 attention_plots/
+*.png
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

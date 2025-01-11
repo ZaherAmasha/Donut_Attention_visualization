@@ -188,7 +188,7 @@ class SwinAttentionTracker:
         full_attention = self._reconstruct_attention_map(
             attention_weights, window_size, windows_per_row, image_size
         )
-
+        print(f"[INFO]: Added the colorbar from inside the SwinAttentionTracker")
         # Plot attention map
         im = ax.imshow(full_attention, cmap="viridis")
         plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)

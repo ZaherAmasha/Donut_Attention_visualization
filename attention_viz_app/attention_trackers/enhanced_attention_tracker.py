@@ -291,7 +291,9 @@ class EnhancedAttentionVisualizer:
             attention_mask = ax.imshow(
                 upsampled_attention, cmap="magma", alpha=0.5, interpolation="bilinear"
             )
-
+            print(
+                f"[INFO]: Added the colorbar from inside the enhanced_attention_tracker"
+            )
             plt.colorbar(attention_mask, ax=ax, fraction=0.046, pad=0.04)
 
             # Add token information

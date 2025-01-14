@@ -1,8 +1,6 @@
 import gradio as gr
 import matplotlib.pyplot as plt
 import math
-import html
-import re
 
 from utils.zoom_pan_image_functionality import (
     zoom_pan_image_tracker,
@@ -192,6 +190,15 @@ def create_gradio_interface(model, processor):
                         gr.Slider(minimum=1, maximum=4),
                         gr.Slider(minimum=1, maximum=16),
                         "",
+                        # for the zoom and pan
+                        gr.Slider(visible=True),
+                        gr.Slider(visible=True),
+                        gr.Slider(visible=True),
+                        gr.Button(visible=True),
+                        gr.Image(visible=True),
+                        gr.Slider(visible=True),
+                        gr.Button(visible=True),
+                        gr.Button(visible=True),
                     )
 
                 fig, html = visualize_cross_attention(
@@ -207,6 +214,15 @@ def create_gradio_interface(model, processor):
                     gr.Slider(minimum=1, maximum=4),
                     gr.Slider(minimum=1, maximum=16),
                     "",
+                    # for the zoom and pan
+                    gr.Slider(visible=True),
+                    gr.Slider(visible=True),
+                    gr.Slider(visible=True),
+                    gr.Button(visible=True),
+                    gr.Image(visible=True),
+                    gr.Slider(visible=True),
+                    gr.Button(visible=True),
+                    gr.Button(visible=True),
                 )
             else:
                 # To be able to move freely error-free through the UI before uploading an input image
@@ -216,9 +232,16 @@ def create_gradio_interface(model, processor):
                         "",
                         gr.Slider(minimum=1, maximum=20),
                         gr.Slider(minimum=1, maximum=4),
-                        # None,
-                        # None,
                         signify_which_swin_stage_is_selected(layer_idx),
+                        # for the zoom and pan
+                        gr.Slider(visible=False),
+                        gr.Slider(visible=False),
+                        gr.Slider(visible=False),
+                        gr.Button(visible=False),
+                        gr.Image(visible=False),
+                        gr.Slider(visible=False),
+                        gr.Button(visible=False),
+                        gr.Button(visible=False),
                     )
                 return (
                     *visualize_swin_attention(
@@ -229,6 +252,15 @@ def create_gradio_interface(model, processor):
                     ),  # layers for the swin transformer here are [2,2,14,2] with a total of 20
                     gr.Slider(minimum=1, maximum=4),  # head count is [4, 8, 16, 32]
                     signify_which_swin_stage_is_selected(layer_idx),
+                    # for the zoom and pan
+                    gr.Slider(visible=False),
+                    gr.Slider(visible=False),
+                    gr.Slider(visible=False),
+                    gr.Button(visible=False),
+                    gr.Image(visible=False),
+                    gr.Slider(visible=False),
+                    gr.Button(visible=False),
+                    gr.Button(visible=False),
                 )
 
         # Update visualization based on controls
@@ -242,8 +274,6 @@ def create_gradio_interface(model, processor):
                     return (
                         None,
                         "",
-                        # gr.Slider(minimum=1, maximum=4),
-                        # gr.Slider(minimum=1, maximum=16),
                         "",
                     )
 
@@ -257,8 +287,6 @@ def create_gradio_interface(model, processor):
                 return (
                     fig,
                     html,
-                    # gr.Slider(minimum=1, maximum=4),
-                    # gr.Slider(minimum=1, maximum=16),
                     "",
                 )
             else:
@@ -267,20 +295,12 @@ def create_gradio_interface(model, processor):
                     return (
                         None,
                         "",
-                        # gr.Slider(minimum=1, maximum=20),
-                        # gr.Slider(minimum=1, maximum=4),
-                        # None,
-                        # None,
                         signify_which_swin_stage_is_selected(layer_idx),
                     )
                 return (
                     *visualize_swin_attention(
                         layer_idx - 1, head_idx - 1
                     ),  # the -1 is because the numpy arrays of the attention matrices are 0 indexed
-                    # gr.Slider(
-                    #     minimum=1, maximum=20
-                    # ),  # layers for the swin transformer here are [2,2,14,2] with a total of 20
-                    # gr.Slider(minimum=1, maximum=4),  # head count is [4, 8, 16, 32]
                     signify_which_swin_stage_is_selected(layer_idx),
                 )
 
@@ -295,8 +315,6 @@ def create_gradio_interface(model, processor):
                     return (
                         None,
                         "",
-                        # gr.Slider(minimum=1, maximum=4),
-                        # gr.Slider(minimum=1, maximum=16),
                         "",
                     )
 
@@ -310,8 +328,6 @@ def create_gradio_interface(model, processor):
                 return (
                     fig,
                     html,
-                    # gr.Slider(minimum=1, maximum=4),
-                    # gr.Slider(minimum=1, maximum=16),
                     "",
                 )
             else:
@@ -320,18 +336,14 @@ def create_gradio_interface(model, processor):
                     return (
                         None,
                         "",
-                        # gr.Slider(minimum=1, maximum=20),
-                        # gr.Slider(minimum=1, maximum=4),
                         signify_which_swin_stage_is_selected(layer_idx),
                     )
                 return (
                     *visualize_swin_attention(
                         layer_idx - 1, head_idx - 1
                     ),  # the -1 is because the numpy arrays of the attention matrices are 0 indexed
-                    # gr.Slider(
-                    #     minimum=1, maximum=20
-                    # ),  # layers for the swin transformer here are [2,2,14,2] with a total of 20
-                    # gr.Slider(minimum=1, maximum=4),  # head count is [4, 8, 16, 32]
+                    # layers for the swin transformer here are [2,2,14,2] with a total of 20
+                    # head count is [4, 8, 16, 32]
                     signify_which_swin_stage_is_selected(layer_idx),
                 )
 
@@ -344,6 +356,16 @@ def create_gradio_interface(model, processor):
                 layer_slider,
                 head_slider,
                 current_swin_block_display,
+                # for the zoom functionality
+                zoom_in_out_slider,
+                horizontol_move_along_image_slider,
+                vertical_move_along_image_slider,
+                reset_zoom_button,
+                mini_map_output,
+                # for the token slider, not needed for the Swin Attention viz
+                token_slider,
+                previous_token_button,
+                next_token_button,
             ],
         ).then(
             fn=lambda: (gr.Slider(value=1), gr.Slider(value=1)),
@@ -357,8 +379,6 @@ def create_gradio_interface(model, processor):
             outputs=[
                 attention_plot,
                 highlighted_text,
-                # layer_slider,
-                # head_slider,
                 current_swin_block_display,
             ],
         )
@@ -368,8 +388,6 @@ def create_gradio_interface(model, processor):
             outputs=[
                 attention_plot,
                 highlighted_text,
-                # layer_slider,
-                # head_slider,
                 current_swin_block_display,
             ],
         ).then(
@@ -394,8 +412,6 @@ def create_gradio_interface(model, processor):
             outputs=[
                 attention_plot,
                 highlighted_text,
-                # layer_slider,
-                # head_slider,
                 current_swin_block_display,
             ],
         )
@@ -436,6 +452,3 @@ def create_gradio_interface(model, processor):
             ],
         )
     return demo
-
-
-# TODO: Continue improving the UX and fix the issue with the zooming of the image. Refer to main.py for more info.

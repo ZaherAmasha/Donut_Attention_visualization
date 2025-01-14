@@ -90,7 +90,7 @@ class Donut(VL_Model):
         # self.model, self.tokenizer = self.build_model(ckpt_file)
 
     def fetch_model_from_local(self):
-        local_model_path = "/home/zaher/Projects/visualizing_Donut_attention/loaded_model/Donut_model_49"  # Set your local path here
+        local_model_path = "/home/zaher/Projects/visualizing_Donut_attention/loaded_model/Donut_model_49"
 
         # Load the model and processor directly from the local path
         loaded_model_bundle = mlflow.transformers.load_model(

@@ -37,15 +37,14 @@ Key observation: Head 8 in the third layer of the MBart decoder shows the most f
   - Stage 2: 2 blocks, 8 heads
   - Stage 3: 14 blocks, 16 heads
   - Stage 4: 2 blocks, 32 heads
-- Visual stage tracker showing current Swin stage (1-4)load_donut_model.py
-- *Note: Overlay visualization and zoom/pan functionality for Swin attention is currently under development*
+- Visual stage tracker showing current Swin stage (1-4)
 
 ## Project Structure
 
 ```
 .
 ├── attention_trackers/
-│   ├── cross_attention_tracker.py
+│   ├── attention_tracker.py
 │   ├── enhanced_attention_tracker.py
 │   └── swin_attention_tracker.py
 ├── utils/
@@ -73,7 +72,6 @@ The visualization interface is built using Gradio components, including:
 ## Roadmap
 
 1. **Short-term Goals**
-   - Fix Swin attention visualization overlay
    - Add utility function for loading model from HuggingFace Hub
    - Implement AttenLRP for more accurate cross-attention relevancy scoring
 

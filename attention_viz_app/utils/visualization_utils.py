@@ -1,16 +1,22 @@
 import matplotlib.pyplot as plt
 import re
 import html
+import gradio as gr
+
+from attention_trackers.attention_tracker import AttentionVisualizer
+
+# from main import visualizer
+from utils.zoom_pan_image_functionality import zoom_pan_image_tracker
+from utils.gradio_utils import signify_which_swin_stage_is_selected
 
 
-def create_highlighted_text(visualizer, token_idx):
+def create_highlighted_text(visualizer: AttentionVisualizer, token_idx):
     """Create HTML with highlighted token"""
     if visualizer.cached_results is None or "tokens" not in visualizer.cached_results:
         return ""
 
     tokens = visualizer.cached_results["tokens"][1:]  # Skip BOS token
     words = []
-    # print(f'These are the tokens to be highlighted: {len(tokens)}')
     for i, token in enumerate(tokens):
         # Clean up token
         # Remove underscore prefix only if followed by a number
@@ -29,7 +35,11 @@ def create_highlighted_text(visualizer, token_idx):
 
 
 def visualize_cross_attention(
-    visualizer, zoom_pan_image_tracker, token_idx, layer_idx, head_idx
+    visualizer: AttentionVisualizer,
+    zoom_pan_image_tracker,
+    token_idx,
+    layer_idx,
+    head_idx,
 ):
     """Generate cross-attention visualization for specific token, layer and head"""
     if visualizer.cached_results["image"] is None:
@@ -74,3 +84,184 @@ def visualize_cross_attention(
     highlighted_text = create_highlighted_text(visualizer, token_idx)
 
     return fig, highlighted_text
+
+
+def visualize_swin_attention(visualizer: AttentionVisualizer, layer_idx, head_idx):
+    """Generate Swin attention visualization for specific layer and head"""
+    if visualizer.cached_results["image"] is None:
+        return None
+
+    # Create figure for single layer/head combination
+    fig = plt.figure(figsize=(8, 6))
+    if layer_idx == "":
+        layer_idx = 1
+    layer_idx = int(layer_idx)
+    attention_weights = visualizer.swin_tracker.swin_attentions[layer_idx]
+    print(
+        f"[INFO]: This is the original swin attention weights matrix for layer {layer_idx} and head {head_idx}: {len(visualizer.swin_tracker.swin_attentions)}"
+    )
+
+    # Process attention weights (using existing _reconstruct_attention_map method)
+    print(
+        f"This is the full attention matrix for layer {layer_idx+1} and head {head_idx+1}: {attention_weights.shape}"
+    )
+
+    full_attention = visualizer.swin_tracker._reconstruct_attention_map(
+        attention_weights[:, head_idx],
+    )
+
+    print(
+        f"This is the full swin attention matrix for layer {layer_idx+1} and head {head_idx+1}: {full_attention.shape}"
+    )
+
+    plt.imshow(full_attention, cmap="viridis")
+    plt.colorbar()
+    plt.title(f"Swin Attention - Layer {layer_idx+1}, Head {head_idx+1}")
+    plt.axis("off")
+
+    return fig, ""
+
+
+def update_visualization_on_attention_type_change(
+    visualizer: AttentionVisualizer,
+    attention_choice,
+    token_idx,
+    layer_idx,
+    head_idx,
+):
+    if attention_choice == "Cross Attention":
+
+        # clipping the index values from swin attentions tab's sliders so not to encounter an index error
+        if layer_idx > 4:
+            layer_idx = 4
+        if head_idx > 16:
+            head_idx = 16
+
+        # To be able to move freely error-free through the UI before uploading an input image
+        if visualizer.cached_results["image"] is None:
+            return (
+                None,
+                "",
+                gr.Slider(minimum=1, maximum=4),
+                gr.Slider(minimum=1, maximum=16),
+                "",
+                # for the zoom and pan
+                gr.Slider(visible=True),
+                gr.Slider(visible=True),
+                gr.Slider(visible=True),
+                gr.Button(visible=True),
+                gr.Image(visible=True),
+                gr.Slider(visible=True),
+                gr.Button(visible=True),
+                gr.Button(visible=True),
+            )
+
+        fig, html = visualize_cross_attention(
+            visualizer,
+            zoom_pan_image_tracker,
+            token_idx,
+            layer_idx - 1,
+            head_idx - 1,
+        )  # the -1 is because the numpy arrays of the attention matrices are 0 indexed
+        return (
+            fig,
+            html,
+            gr.Slider(minimum=1, maximum=4),
+            gr.Slider(minimum=1, maximum=16),
+            "",
+            # for the zoom and pan
+            gr.Slider(visible=True),
+            gr.Slider(visible=True),
+            gr.Slider(visible=True),
+            gr.Button(visible=True),
+            gr.Image(visible=True),
+            gr.Slider(visible=True),
+            gr.Button(visible=True),
+            gr.Button(visible=True),
+        )
+    else:
+        # To be able to move freely error-free through the UI before uploading an input image
+        if visualizer.cached_results["image"] is None:
+            return (
+                None,
+                "",
+                gr.Slider(minimum=1, maximum=20),
+                gr.Slider(minimum=1, maximum=4),
+                signify_which_swin_stage_is_selected(layer_idx),
+                # for the zoom and pan
+                gr.Slider(visible=False),
+                gr.Slider(visible=False),
+                gr.Slider(visible=False),
+                gr.Button(visible=False),
+                gr.Image(visible=False),
+                gr.Slider(visible=False),
+                gr.Button(visible=False),
+                gr.Button(visible=False),
+            )
+        return (
+            *visualize_swin_attention(
+                visualizer, layer_idx - 1, head_idx - 1
+            ),  # the -1 is because the numpy arrays of the attention matrices are 0 indexed
+            gr.Slider(
+                minimum=1, maximum=20
+            ),  # layers for the swin transformer here are [2,2,14,2] with a total of 20
+            gr.Slider(minimum=1, maximum=4),  # head count is [4, 8, 16, 32]
+            signify_which_swin_stage_is_selected(layer_idx),
+            # for the zoom and pan
+            gr.Slider(visible=False),
+            gr.Slider(visible=False),
+            gr.Slider(visible=False),
+            gr.Button(visible=False),
+            gr.Image(visible=False),
+            gr.Slider(visible=False),
+            gr.Button(visible=False),
+            gr.Button(visible=False),
+        )
+
+
+# Update visualization based on controls
+def update_visualization_on_layer_and_head_sliders_change(
+    visualizer: AttentionVisualizer,
+    attention_choice,
+    token_idx,
+    layer_idx,
+    head_idx,
+):
+    if attention_choice == "Cross Attention":
+
+        # To be able to move freely error-free through the UI before uploading an input image
+        if visualizer.cached_results["image"] is None:
+            return (
+                None,
+                "",
+                "",
+            )
+
+        fig, html = visualize_cross_attention(
+            visualizer,
+            zoom_pan_image_tracker,
+            token_idx,
+            layer_idx - 1,
+            head_idx - 1,
+        )  # the -1 is because the numpy arrays of the attention matrices are 0 indexed
+        return (
+            fig,
+            html,
+            "",
+        )
+    else:
+        # To be able to move freely error-free through the UI before uploading an input image
+        if visualizer.cached_results["image"] is None:
+            return (
+                None,
+                "",
+                signify_which_swin_stage_is_selected(layer_idx),
+            )
+        return (
+            *visualize_swin_attention(
+                visualizer, layer_idx - 1, head_idx - 1
+            ),  # the -1 is because the numpy arrays of the attention matrices are 0 indexed
+            # layers for the swin transformer here are [2,2,14,2] with a total of 20
+            # head count is [4, 8, 16, 32]
+            signify_which_swin_stage_is_selected(layer_idx),
+        )

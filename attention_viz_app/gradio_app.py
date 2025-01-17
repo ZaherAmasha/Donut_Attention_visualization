@@ -178,7 +178,16 @@ def create_gradio_interface(visualizer: AttentionVisualizer):
                 highlighted_text,
                 current_swin_block_display,
             ],
+        ).then(
+            fn=zoom_pan_image,
+            inputs=[
+                zoom_in_out_slider,
+                horizontol_move_along_image_slider,
+                vertical_move_along_image_slider,
+            ],
+            outputs=[attention_plot, mini_map_output],
         )
+
         layer_slider.change(
             fn=update_visualization_on_layer_and_head_sliders_change_wrapper,
             inputs=[

@@ -3,7 +3,11 @@
 A Python application that visualizes attention mechanisms in the Donut OCR model, specifically focusing on cross-attention between text tokens and image tokens, as well as internal Swin attention patterns. The visualization includes interactive heatmaps overlaid on input images, providing insights into how the model processes and understands document images.
 
 ## Video Demo
-[Video Demo Coming Soon]
+
+
+https://github.com/user-attachments/assets/8e2f9029-28b5-4f2d-804d-a2f18a44d678
+
+
 
 ## Overview
 

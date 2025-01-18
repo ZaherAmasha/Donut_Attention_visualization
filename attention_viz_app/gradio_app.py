@@ -219,12 +219,7 @@ def create_gradio_interface(visualizer: AttentionVisualizer):
 
         head_slider.change(
             fn=update_visualization_on_layer_and_head_sliders_change_wrapper,
-            inputs=[
-                attention_type,
-                token_slider,
-                layer_slider,
-                head_slider,
-            ],
+            inputs=[attention_type, token_slider, layer_slider, head_slider],
             outputs=[
                 attention_plot,
                 highlighted_text,

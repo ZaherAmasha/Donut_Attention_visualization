@@ -5,8 +5,10 @@ import gradio as gr
 
 from attention_trackers.attention_tracker import AttentionVisualizer
 
-# from main import visualizer
-from utils.zoom_pan_image_functionality import zoom_pan_image_tracker
+from utils.zoom_pan_image_functionality import (
+    zoom_pan_image_tracker,
+    ZoomPanImageTracker,
+)
 from utils.gradio_utils import signify_which_swin_stage_is_selected
 
 
@@ -36,7 +38,7 @@ def create_highlighted_text(visualizer: AttentionVisualizer, token_idx):
 
 def visualize_cross_attention(
     visualizer: AttentionVisualizer,
-    zoom_pan_image_tracker,
+    zoom_pan_image_tracker: ZoomPanImageTracker,
     token_idx,
     layer_idx,
     head_idx,
@@ -86,7 +88,12 @@ def visualize_cross_attention(
     return fig, highlighted_text
 
 
-def visualize_swin_attention(visualizer: AttentionVisualizer, layer_idx, head_idx):
+def visualize_swin_attention(
+    visualizer: AttentionVisualizer,
+    zoom_pan_image_tracker: ZoomPanImageTracker,
+    layer_idx,
+    head_idx,
+):
     """Generate Swin attention visualization for specific layer and head"""
     if visualizer.cached_results["image"] is None:
         return None
@@ -119,6 +126,9 @@ def visualize_swin_attention(visualizer: AttentionVisualizer, layer_idx, head_id
     plt.title(f"Swin Attention - Layer {layer_idx+1}, Head {head_idx+1}")
     plt.axis("off")
 
+    # Storing the image of the figure for the zoom and pan functionality later on
+    zoom_pan_image_tracker.store_original_plot(fig)
+
     return fig, ""
 
 
@@ -142,8 +152,8 @@ def update_visualization_on_attention_type_change(
             return (
                 None,
                 "",
-                gr.Slider(minimum=1, maximum=4),
-                gr.Slider(minimum=1, maximum=16),
+                gr.Slider(value=1, minimum=1, maximum=4),
+                gr.Slider(value=1, minimum=1, maximum=16),
                 "",
                 # for the zoom and pan
                 gr.Slider(visible=True),
@@ -166,8 +176,8 @@ def update_visualization_on_attention_type_change(
         return (
             fig,
             html,
-            gr.Slider(minimum=1, maximum=4),
-            gr.Slider(minimum=1, maximum=16),
+            gr.Slider(value=1, minimum=1, maximum=4),
+            gr.Slider(value=1, minimum=1, maximum=16),
             "",
             # for the zoom and pan
             gr.Slider(visible=True),
@@ -185,34 +195,34 @@ def update_visualization_on_attention_type_change(
             return (
                 None,
                 "",
-                gr.Slider(minimum=1, maximum=20),
-                gr.Slider(minimum=1, maximum=4),
+                gr.Slider(value=1, minimum=1, maximum=20),
+                gr.Slider(value=1, minimum=1, maximum=4),
                 signify_which_swin_stage_is_selected(layer_idx),
                 # for the zoom and pan
-                gr.Slider(visible=False),
-                gr.Slider(visible=False),
-                gr.Slider(visible=False),
-                gr.Button(visible=False),
-                gr.Image(visible=False),
+                gr.Slider(visible=True),
+                gr.Slider(visible=True),
+                gr.Slider(visible=True),
+                gr.Button(visible=True),
+                gr.Image(visible=True),
                 gr.Slider(visible=False),
                 gr.Button(visible=False),
                 gr.Button(visible=False),
             )
         return (
             *visualize_swin_attention(
-                visualizer, layer_idx - 1, head_idx - 1
+                visualizer, zoom_pan_image_tracker, layer_idx - 1, head_idx - 1
             ),  # the -1 is because the numpy arrays of the attention matrices are 0 indexed
             gr.Slider(
-                minimum=1, maximum=20
+                value=1, minimum=1, maximum=20
             ),  # layers for the swin transformer here are [2,2,14,2] with a total of 20
-            gr.Slider(minimum=1, maximum=4),  # head count is [4, 8, 16, 32]
+            gr.Slider(value=1, minimum=1, maximum=4),  # head count is [4, 8, 16, 32]
             signify_which_swin_stage_is_selected(layer_idx),
             # for the zoom and pan
-            gr.Slider(visible=False),
-            gr.Slider(visible=False),
-            gr.Slider(visible=False),
-            gr.Button(visible=False),
-            gr.Image(visible=False),
+            gr.Slider(visible=True),
+            gr.Slider(visible=True),
+            gr.Slider(visible=True),
+            gr.Button(visible=True),
+            gr.Image(visible=True),
             gr.Slider(visible=False),
             gr.Button(visible=False),
             gr.Button(visible=False),
@@ -259,7 +269,7 @@ def update_visualization_on_layer_and_head_sliders_change(
             )
         return (
             *visualize_swin_attention(
-                visualizer, layer_idx - 1, head_idx - 1
+                visualizer, zoom_pan_image_tracker, layer_idx - 1, head_idx - 1
             ),  # the -1 is because the numpy arrays of the attention matrices are 0 indexed
             # layers for the swin transformer here are [2,2,14,2] with a total of 20
             # head count is [4, 8, 16, 32]
